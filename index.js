@@ -5,6 +5,8 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const config = require('./config/config');
 const bodyParser = require('body-parser');
+const jwt = require('jsonwebtoken');
+const passport = require('./config/passport');
 
 mongoose.connect(config.database);
 
@@ -29,7 +31,6 @@ app.get('/users', function (req, res) {
 })
 
 app.post('/signup', function (req, res) {
-  console.log(req.body)
   var newUser = new User({
     firstName: req.body.firstName,
     lastName: req.body.lastName,
@@ -39,13 +40,32 @@ app.post('/signup', function (req, res) {
   });
   newUser.save(function(err) {
     if (!err) {
-      res.status(200).send({message: "success"});
+      var token = jwt.sign(user, config.secret);
+      res.status(200).send({message: "success", token: 'JWT ' + token, user: user})
     } else {
       res.status(400).send({message: err.message});
     }
   });
 })
 
+app.post('/login', function(req, res) {
+  User.findOne({
+    email: req.body.email
+  }, function(err, user) {
+    if (!user) {
+      res.status(401).send({error: true, message: 'authentication failed, user not found.'});
+    } else {
+      user.checkPassword(req.body.password, function (err, matchFound) {
+        if (matchFound && !err) {
+          var token = jwt.sign(JSON.parse(JSON.stringify(user)), config.secret);
+          res.status(200).send({token: 'JWT ' + token, message: "success"})
+        } else {
+          res.status(401).send({error: true, message: 'authentication failed'});
+        }
+      });
+    }
+  });
+});
 
 app.get('/api/marketplace', function (req, res) {
   res.json(file)
