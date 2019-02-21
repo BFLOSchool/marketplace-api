@@ -6,7 +6,8 @@ const mongoose = require('mongoose');
 const config = require('./config/config');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-const passport = require('./config/passport');
+const passport = require('passport');
+require('./config/passport')(passport);
 
 mongoose.connect(config.database);
 
@@ -38,9 +39,9 @@ app.post('/signup', function (req, res) {
     phoneNumber: req.body.phoneNumber,
     password: req.body.password
   });
-  newUser.save(function(err) {
+  newUser.save(function(err, user) {
     if (!err) {
-      var token = jwt.sign(user, config.secret);
+      var token = jwt.sign(JSON.parse(JSON.stringify(user)), config.secret);
       res.status(200).send({message: "success", token: 'JWT ' + token, user: user})
     } else {
       res.status(400).send({message: err.message});
@@ -71,4 +72,28 @@ app.get('/api/marketplace', function (req, res) {
   res.json(file)
 })
 
-app.listen(3000)
+app.get('/api/hello', passport.authenticate('jwt', { session: false}), function(req, res) {
+  const token = getToken(req.headers);
+  if (token) {
+    res.status(200).send({message: "Hello World!"})
+  } else {
+    return res.status(403).send({success: false, message: 'Unauthorized.'});
+  }
+});
+
+function getToken(headers) {
+  if (headers && headers.authorization) {
+    var parted = headers.authorization.split(' ');
+    if (parted.length === 2) {
+      return parted[1];
+    } else {
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
+
+
+
+app.listen(5000)

@@ -6,11 +6,11 @@ var config = require('../config/config'); // get db config file
 
 module.exports = function(passport) {
   var opts = {};
-  opts.jwtFromRequest = ExtractJwt.fromAuthHeader();
+  opts.jwtFromRequest = ExtractJwt.fromAuthHeaderWithScheme("jwt");
   opts.secretOrKey = config.secret;
   passport.use(new JWTStrategy(opts, function(jwtPayload, done) {
     const data = JSON.parse(JSON.stringify(jwtPayload));
-    User.findOne({_id: data._doc._id}, function(err, user) {
+    User.findOne({_id: data._id}, function(err, user) {
       if (user) {
         done(null, user);
       } else if (err) {
